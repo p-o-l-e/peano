@@ -44,5 +44,5 @@ void compute_latent_mean(network_t*);
 void compute_latent_deviation(network_t*); 
 void network_forward(network_t*, const float*);
 float mse_loss(const float*, const float*, const int);
-void update_weights(neuron_t*, const float*, const float, const float, const float);
+void update_weights(neuron_t*, const float*, const float, const float, const float, const float);
 void train_network(network_t*, const float*, const float*, const float); 

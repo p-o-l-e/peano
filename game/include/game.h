@@ -23,5 +23,5 @@ Use this as a starting point or replace it with your code.
 */
 
 
-static constexpr int W = 1800;
-static constexpr int H = 800;
+static constexpr int W = 1910;
+static constexpr int H = 1000;

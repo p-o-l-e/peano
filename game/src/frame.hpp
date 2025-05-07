@@ -16,6 +16,7 @@ class frame
 };
 
 
+
 template <typename T>
 constexpr void frame<T>::set(const unsigned& x, const unsigned& y, const T& value) noexcept
 {

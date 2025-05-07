@@ -53,7 +53,7 @@ float neuron_forward(const neuron_t *neuron, const float input[])
     {
         sum += neuron->weight[i] * input[i];
     }
-    return sigmoid(sum);
+    return TANH(sum);
     // return LReLU(sum);
 }
 
@@ -64,6 +64,12 @@ void layer_forward(const layer_t *layer, const float input[], float output[])
         output[i] = neuron_forward(&layer->neuron[i], input);
     }
 }
+
+float sample_latent(float mean, float deviation) {
+    float random_noise = ((float)rand() / RAND_MAX) * 2.0f - 1.0f; // Random value [-1,1]
+    return mean + deviation * random_noise;
+}
+
 
 void compute_latent_mean(network_t *network) 
 {
@@ -158,5 +164,5 @@ void train_network(network_t *network, const float input[], const float target[]
         }
     }
     network->loss = loss;
-    printf("Loss: %f\n", loss);
+    // printf("Loss: %f\n", loss);
 }
