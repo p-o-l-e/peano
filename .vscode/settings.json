@@ -1,0 +1,28 @@
+{
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/CVS": true,
+		"**/.DS_Store": true,
+		"**/*.o": true,
+		"**/*.exe": true,
+	},
+	"files.associations": {
+		"cstdio": "cpp",
+		"random": "cpp",
+		"socket": "cpp",
+		"optional": "cpp",
+		"ratio": "cpp",
+		"system_error": "cpp",
+		"array": "cpp",
+		"functional": "cpp",
+		"tuple": "cpp",
+		"type_traits": "cpp",
+		"utility": "cpp",
+		"variant": "cpp",
+		"charconv": "cpp",
+		"format": "cpp",
+		"*.m": "cpp"
+	}
+}
