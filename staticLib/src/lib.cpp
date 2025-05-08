@@ -54,7 +54,6 @@ float neuron_forward(const neuron_t *neuron, const float input[])
         sum += neuron->weight[i] * input[i];
     }
     return TANH(sum);
-    // return LReLU(sum);
 }
 
 void layer_forward(const layer_t *layer, const float input[], float output[]) 
@@ -64,12 +63,6 @@ void layer_forward(const layer_t *layer, const float input[], float output[])
         output[i] = neuron_forward(&layer->neuron[i], input);
     }
 }
-
-float sample_latent(float mean, float deviation) {
-    float random_noise = ((float)rand() / RAND_MAX) * 2.0f - 1.0f; // Random value [-1,1]
-    return mean + deviation * random_noise;
-}
-
 
 void compute_latent_mean(network_t *network) 
 {
@@ -98,6 +91,13 @@ void compute_latent_deviation(network_t *network)
     }
 }
 
+float sample_latent(float mean, float deviation) 
+{
+    float random_noise = ((float)rand() / RAND_MAX) * 2.0f - 1.0f; // [-1,1]
+    return mean + deviation * random_noise;
+}
+
+
 void network_forward(network_t *network, const float inputs[]) 
 {
     float buffer[LS];
@@ -115,6 +115,13 @@ void network_forward(network_t *network, const float inputs[])
 
     compute_latent_mean(network);
     compute_latent_deviation(network);
+
+    for (int i = 0; i < LS; i++) 
+    {
+        float sampled_latent = sample_latent(network->latent.mean[i], network->latent.deviation[i]);
+        float adaptive_scaling = 0.005f * (1.0f - network->latent.deviation[i]);
+        network->layer[HL - 1].memory[i] += adaptive_scaling * sampled_latent;  // Small latent adjustment
+    }
 }
 
 float mse_loss(const float original[], const float reconstructed[], const int size) 
@@ -150,11 +157,10 @@ void update_weights(neuron_t *neuron, const float input[], const float output, c
     neuron->bias += learning_rate * error;
 }
 
-void train_network(network_t *network, const float input[], const float target[], const float learning_rate) 
+void train_network(network_t *network, const float input[], const float target[], const float learning_rate, const bool debug) 
 {
     network_forward(network, input);
     float loss = mae_loss(target, network->layer[HL - 1].memory, LS);
-    // float loss = mae_loss(input, network->layer[HL - 1].memory, LS);
 
     for (int i = 0; i < HL; i++) 
     {
@@ -164,5 +170,5 @@ void train_network(network_t *network, const float input[], const float target[]
         }
     }
     network->loss = loss;
-    // printf("Loss: %f\n", loss);
+    if(debug) printf("Loss: %f\n", loss);
 }

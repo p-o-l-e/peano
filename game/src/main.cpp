@@ -5,6 +5,7 @@
 #include "lib.h"	// an external header in the static lib project
 #include <cstdio>
 #include <ctime>
+#include <iostream>
 
 network_t net;
 frame<unsigned> canvas(W, H);
@@ -65,9 +66,9 @@ void test_unseen_input(network_t *network)
 }
 
 // Run training and integrate validation steps
-void train_network_full(network_t *network) 
+void train_network_full(network_t *network, const bool d) 
 {
-        float input[LS], target[LS];
+        // float input[LS], target[LS];
         generate_random_input(input, LS);
 
         for (int i = 0; i < LS; i++) 
@@ -75,7 +76,7 @@ void train_network_full(network_t *network)
             target[i] = input[i];  
         }
 
-        train_network(network, input, target, LEARNING_RATE);
+        train_network(network, input, target, LEARNING_RATE, d);
 
         if (epoch % VALIDATION_INTERVAL == 0) 
         {
@@ -101,7 +102,7 @@ void GameInit()
     for(int i = 0; i < EPOCHS; ++i)
     {
         // train_network(&net, input, target, adaptive_lr(i, 0.01f));
-        train_network_full(&net);
+        train_network_full(&net, false);
 
         canvas.set(i, net.loss * 100.0f + H/2, 0xFFFFFFFF);
         for(int l = 0; l < HL; ++l)
@@ -120,6 +121,12 @@ void GameInit()
         }
         ++epoch;
     }
+    for(int i = 0; i < 100000; ++i) 
+    {
+        train_network_full(&net, false);
+        ++epoch;
+    }
+
     printf("Training Completed!\n");
 }
 
