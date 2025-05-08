@@ -79,6 +79,7 @@ void compute_latent_mean(network_t *network)
 
 void compute_latent_deviation(network_t *network) 
 {
+    float scale = 0.999f;
     for (int i = 0; i < LS; ++i) 
     {
         float variance = 0.0f;
@@ -87,7 +88,7 @@ void compute_latent_deviation(network_t *network)
             float diff = network->layer[j].memory[i] - network->latent.mean[i];
             variance += diff * diff;
         }
-        network->latent.deviation[i] = sqrt(variance / HL);
+        network->latent.deviation[i] = sqrt(variance / HL) * scale;
     }
 }
 
@@ -145,6 +146,18 @@ float mae_loss(const float original[], const float reconstructed[], const int si
     return loss / size;
 }
 
+float smooth_l1_loss(const float original[], const float reconstructed[], const int size) 
+{
+    float loss = 0.0f;
+    for (int i = 0; i < size; ++i) 
+    {
+        float diff = fabsf(original[i] - reconstructed[i]);
+        loss += (diff < 1.0f) ? 0.5f * diff * diff : (diff - 0.5f);
+    }
+    return loss / size;
+}
+
+
 
 void update_weights(neuron_t *neuron, const float input[], const float output, const float target, const float learning_rate) 
 {
@@ -160,7 +173,7 @@ void update_weights(neuron_t *neuron, const float input[], const float output, c
 void train_network(network_t *network, const float input[], const float target[], const float learning_rate, const bool debug) 
 {
     network_forward(network, input);
-    float loss = mae_loss(target, network->layer[HL - 1].memory, LS);
+    float loss = smooth_l1_loss(target, network->layer[HL - 1].memory, LS);
 
     for (int i = 0; i < HL; i++) 
     {
