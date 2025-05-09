@@ -99,3 +99,31 @@ void draw_rectangle(frame<unsigned>* canvas, int xo, int yo, int width, int heig
         canvas->set(xe, i, alpha);
     }
 }
+
+void plot_function(frame<unsigned>* canvas, int width, int height, float (*func)(float), float xmin, float xmax, unsigned color) 
+{
+    float xscale = width / (xmax - xmin);
+    float yscale = height / 2.0f; // Normalize so 0 is the middle
+
+    int prev_x = 0, prev_y = 0;
+    bool first_point = true;
+
+    for (int i = 0; i < width; i++) 
+    {
+        float x = xmin + (i / xscale);
+        float y = func(x); // Get function output
+        int screen_x = i;
+        int screen_y = (int)(height / 2.0f - y * yscale); // Flip for screen coordinates
+
+        canvas->set(screen_x, screen_y, color);
+
+        if (!first_point) 
+        {
+            line(canvas, prev_x, prev_y, screen_x, screen_y, color);
+        }
+
+        prev_x = screen_x;
+        prev_y = screen_y;
+        first_point = false;
+    }
+}

@@ -3,6 +3,7 @@
 #include "frame.hpp"
 #include "game.h"   // an external header in this project
 #include "lib.h"	// an external header in the static lib project
+#include "sequencer.h"
 #include <cstdio>
 #include <ctime>
 #include <iostream>
@@ -23,12 +24,18 @@ float adaptive_lr(int epoch, float base_lr)
     return base_lr / (1.0f + 0.002f * epoch); // Slight decay factor
 }
 
+float noisy_input(float input, float noise_strength) 
+{
+    return input + noise_strength * ((float)rand() / RAND_MAX - 0.5f);
+}
+
 // Generate random input for training
-void generate_random_input(float input[], int size) 
+void generate_random_input(float input[], int size, float noise_strength) 
 {
     for (int i = 0; i < size; i++) 
     {
         input[i] = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+        input[i] = noisy_input(input[i], noise_strength);
     }
 }
 
@@ -57,7 +64,7 @@ void validate_latent_distribution(network_t *network)
 void test_unseen_input(network_t *network) 
 {
     float unseen_input[LS];
-    generate_random_input(unseen_input, LS);
+    generate_random_input(unseen_input, LS, 0.01f);
     network_forward(network, unseen_input);
 
     printf("\nTesting Unseen Input...\n");
@@ -65,28 +72,57 @@ void test_unseen_input(network_t *network)
     validate_latent_distribution(network);
 }
 
-// Run training and integrate validation steps
-void train_network_full(network_t *network, const bool d) 
+void test_network(frame<unsigned>* canvas, network_t* network, float input[], int width, int height) 
 {
-        // float input[LS], target[LS];
-        generate_random_input(input, LS);
+    network_forward(network, input);
+
 
         for (int i = 0; i < LS; i++) 
         {
-            target[i] = input[i];  
-        }
+            int activation_y = height / 2 - network->layer[HL - 1].memory[i] * (height / 2);
+            int mean_y = height / 2 - network->latent.mean[i] * (height / 2);
+            int deviation_y = height / 2 - network->latent.deviation[i] * (height / 2);
+            int error_y = height / 2 - fabsf(input[i] - network->layer[HL - 1].memory[i]) * (height / 2);
 
-        train_network(network, input, target, LEARNING_RATE, d);
-
-        if (epoch % VALIDATION_INTERVAL == 0) 
-        {
-            printf("\nEpoch %d - Loss: %f\n", epoch, network->loss);
-            validate_reconstruction(input, network->layer[HL - 1].memory, LS);
-            validate_latent_distribution(network);
-            test_unseen_input(network);
+            // Plot points with higher density across epochs
+            canvas->set(epoch, activation_y, 0x00FF00FF);  // Green for activations
+            canvas->set(epoch, mean_y, 0xFF0000FF);  // Red for latent mean
+            canvas->set(epoch, deviation_y, 0x0000FFFF);  // Blue for latent deviation
+            canvas->set(epoch, error_y, 0xFFFF00FF);  // Yellow for reconstruction error
         }
-    
 }
+
+
+// Run training and integrate validation steps
+void train_network_full(network_t *network, const bool d) 
+{
+    float input[LS], target[LS];
+
+    generate_random_input(input, LS, 0.01f);
+
+    for (int i = 0; i < LS; i++) 
+    {
+        target[i] = input[i];  
+    }
+
+    train_network(network, input, target, LEARNING_RATE, d);
+
+    if (epoch % VALIDATION_INTERVAL == 0) 
+    {
+        printf("\nEpoch %d - Loss: %f\n", epoch, network->loss);
+        validate_reconstruction(input, network->layer[HL - 1].memory, LS);
+        validate_latent_distribution(network);
+        test_unseen_input(network);
+
+
+    }
+            // **Plot network behavior for deeper analysis**
+            test_network(&canvas, network, input, W, H);
+}
+
+
+
+
 
 void GameInit()
 {

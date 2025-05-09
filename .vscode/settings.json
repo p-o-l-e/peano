@@ -23,6 +23,7 @@
 		"variant": "cpp",
 		"charconv": "cpp",
 		"format": "cpp",
-		"*.m": "cpp"
+		"*.m": "cpp",
+		"algorithm": "cpp"
 	}
 }
