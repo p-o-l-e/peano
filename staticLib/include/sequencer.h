@@ -2,6 +2,15 @@
 #include "lib.h"
 #include "note.h"
 
+typedef struct 
+{ 
+    float pitch; 
+    float detune;
+    float gate;
+    float velocity;
+    float latitude;
+
+} transformer_t;
 
 void train_sequence(network_t *network, float sequence[][NF], int seq_length, float learning_rate) 
 {
@@ -42,3 +51,26 @@ void pad_sequence(float padded_seq[][NF], float original_seq[][NF], int seq_leng
         }
     }
 }
+
+
+
+void feed_dataset(network_t *net, const note_cluster_t dataset[], size_t size, const transformer_t *transformer, float lrate, bool debug) 
+{
+    for (size_t i = 0; i < size; ++i) 
+    {
+        float input[POLYPHONY * NF];
+        float target[POLYPHONY * NF];
+
+        for (size_t j = 0; j < POLYPHONY; ++j) 
+        {
+            for (size_t k = 0; k < NF; ++k) 
+            {
+                input[j * NF + k] = ((float*)&dataset[i].note[j])[k];
+                float factor = ((float*)transformer)[k];
+                target[j * NF + k] = input[j * NF + k] * factor;
+            }
+        }
+        train_network(net, input, target, lrate, debug);
+    }
+}
+
