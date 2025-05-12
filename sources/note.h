@@ -28,7 +28,7 @@ typedef struct
     uint8_t channel;                    // MIDI channel (0–15)
     uint8_t data1;                      // First data byte (e.g., pitch for Note On, control number for CC)
     uint8_t data2;                      // Second data byte (e.g., velocity for Note On, control value for CC)
-    uint16_t timestamp;                 // Timing in MIDI ticks 
+    uint16_t delta;                     // Timing in MIDI ticks 
 
 } midi_message_t;
 
@@ -57,7 +57,7 @@ float decode(const float value, const float max) // [ 0.0f ... max ]
 }
 
 
-midi_pair_t convert_note_to_midi(const note_cluster_t* cluster, uint8_t voice, uint16_t time, uint8_t channel)
+midi_pair_t convert_note_to_midi(const note_cluster_t* cluster, uint8_t voice, uint8_t channel)
 {
     midi_pair_t msg = { 0 };
     if (voice >= POLYPHONY) return msg;
@@ -69,8 +69,8 @@ midi_pair_t convert_note_to_midi(const note_cluster_t* cluster, uint8_t voice, u
     uint16_t offset_ticks  = (uint16_t)lroundf(decode(note->offset,   OFFSET_MAX));
     uint16_t gate_ticks    = (uint16_t)lroundf(decode(note->gate,     GATE_MAX));
 
-    msg.on  = (midi_message_t){ .status = 0x90, .channel = channel, .data1 = pitch, .data2 = velocity, .timestamp = time + offset_ticks };
-    msg.off = (midi_message_t){ .status = 0x80, .channel = channel, .data1 = pitch, .data2 = 0,        .timestamp = time + offset_ticks + gate_ticks };
+    msg.on  = (midi_message_t){ .status = 0x90, .channel = channel, .data1 = pitch, .data2 = velocity, .delta = offset_ticks };
+    msg.off = (midi_message_t){ .status = 0x80, .channel = channel, .data1 = pitch, .data2 = 0,        .delta = offset_ticks + gate_ticks };
 
     return msg;
 }
@@ -83,9 +83,9 @@ note_t convert_note_from_midi(const midi_pair_t* midi_pair, uint16_t base_time)
 
     note.pitch     = encode((float)midi_pair->on.data1, CHROMA_MAX);
     note.velocity  = encode((float)midi_pair->on.data2, VELOCITY_MAX);
-    uint16_t gate  = midi_pair->off.timestamp - midi_pair->on.timestamp;
+    uint16_t gate  = midi_pair->off.delta - midi_pair->on.delta;
     note.gate      = encode((float)gate, GATE_MAX);
-    int16_t offset = midi_pair->on.timestamp - base_time;
+    int16_t offset = midi_pair->on.delta - base_time;
     note.offset    = encode((float)offset, OFFSET_MAX);
 
     return note;
