@@ -24,7 +24,11 @@
 
 int main(void)
 {
+    int cycle = FRAME_W;
+    int iteration = 0;
+
     srand(time(NULL));
+    bool next_aion = true;
 
     std::vector<frame<unsigned>*> canvas;
     network_t net;
@@ -38,11 +42,8 @@ int main(void)
         layer_active[i] = false;
     }
 
-    for(int i = 0; i < FRAME_W; ++i)
-    {
-        train_network_full(&canvas, &net, false, FRAME_W, FRAME_H, i); 
-    }
 
+  
     write_midi_file("test.mid", dataset, DATASET_SIZE, 120);
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE);
@@ -57,11 +58,20 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        if(next_aion)
+        {
+            for(int i = 0; i < cycle; ++i)
+            {
+                train_network_full(&canvas, &net, false, FRAME_W, FRAME_H, i, TFLAG::FDEFAULT); 
+            }
+            iteration++;
+            next_aion = false;
+        }
 
         if(repaint)
         {
-            UnloadImage(imCopy);                // Unload image-copy data
-            imCopy = ImageCopy(img);     // Restore image-copy from image-origin
+            UnloadImage(imCopy);                            // Unload image-copy data
+            imCopy = ImageCopy(img);                        // Restore image-copy from image-origin
             for(int l = 0; l < LAYER::COUNT; ++l) 
             {
                 if(!layer_active[l]) continue;
@@ -71,13 +81,9 @@ int main(void)
                     {  
                         auto c = canvas.at(l)->get(x, y);
                         if(c) ImageDrawPixel(&imCopy, x, y, GetColor(c));
-                        // DrawPixel(x + FRAME_OX, y + FRAME_OY, GetColor(canvas.at(l)->get(x, y)));
-                                            
                     }
                 }
             }
-            // tex = LoadTextureFromImage(img);
-
             Color *pixels = LoadImageColors(imCopy);    // Load pixel data from image (RGBA 32bit)
             UpdateTexture(tex, pixels);
             UnloadImageColors(pixels);                  // Unload pixels data from RAM
@@ -88,12 +94,23 @@ int main(void)
         ClearBackground(LIGHTGRAY);
 
         DrawTexture(tex, FRAME_OX, FRAME_OY, WHITE);
-
-        if(GuiCheckBox((Rectangle) { 12, 12, 12, 12 }, "Weights   ", &layer_active[LAYER::WEIGHT])) { repaint = true; };
-        if(GuiCheckBox((Rectangle) { 12, 26, 12, 12 }, "Activation", &layer_active[LAYER::ACTIVATION])) { repaint = true; };
-        if(GuiCheckBox((Rectangle) { 12, 40, 12, 12 }, "Mean      ", &layer_active[LAYER::MEAN])) { repaint = true; };
-        if(GuiCheckBox((Rectangle) { 12, 54, 12, 12 }, "Deviation ", &layer_active[LAYER::DEVIATION])) { repaint = true; };
-        if(GuiCheckBox((Rectangle) { 12, 68, 12, 12 }, "Error     ", &layer_active[LAYER::ERROR])) { repaint = true; };
+        for(int i = LAYER::ACTIVATION; i < LAYER::COUNT; ++i)
+        {
+            if(GuiCheckBox(Rectangle { 12, 12 + 14 * i, 12, 12 }, layer.at((LAYER)i).c_str(), &layer_active[i]))
+            {
+                repaint = true;
+            }
+        }
+        if (GuiButton(Rectangle { GAP_X, SCREEN_HEIGHT - GAP_Y - 24, 80, 24 }, GuiIconText(ICON_PLAYER_NEXT, "Epoch"))) 
+        { 
+            next_aion = true; 
+            for(int i = 0; i < LAYER::COUNT; ++i)                 
+            {
+                canvas.at(i)->clr(0);
+            }
+            repaint = true;
+        };
+        GuiLabel(Rectangle { GAP_X , SCREEN_HEIGHT - GAP_Y - 50, 80, 24 }, std::to_string(iteration * cycle).c_str());
 
         EndDrawing();
     }
@@ -105,7 +122,6 @@ int main(void)
     CloseWindow();
     for(int i = LAYER::COUNT - 1; i >= 0; --i) 
     {
-        // canvas.push_back(new frame<unsigned>{ FRAME_W, FRAME_H });
         delete canvas.at(i);   
     }
 
